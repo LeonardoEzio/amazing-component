@@ -19,7 +19,7 @@ import java.util.Map;
  * @version v1.0.0 create at 2024-04-01 23:00
  */
 @Component
-@ConditionalOnBean(XxlJobAdminHelper.class)
+@ConditionalOnBean({XxlJobAdminHelper.class})
 public class XxlJobAutoRegisterProcessor implements ApplicationContextAware, InitializingBean {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XxlJobAutoRegisterProcessor.class);

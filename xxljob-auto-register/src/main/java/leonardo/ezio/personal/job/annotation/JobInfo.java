@@ -27,12 +27,17 @@ public @interface JobInfo {
     /**
      * 超时时间
      * */
-    long timeout() default 0L;
+    int timeout() default 0;
 
     /**
      * 重试次数
      * */
     int maxRetryCount() default 0;
+
+    /**
+     * 是否自动启动
+     * */
+    boolean autoStart() default false;
 
     /**
      * 任务描述

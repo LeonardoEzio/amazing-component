@@ -30,6 +30,10 @@ public enum BlockStrategy {
         this.desc = desc;
     }
 
+    public String getValue(){
+        return this.name().toUpperCase();
+    }
+
 
     public String getDesc() {
         return desc;

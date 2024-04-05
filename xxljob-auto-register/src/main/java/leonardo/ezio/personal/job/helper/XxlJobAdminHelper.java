@@ -1,15 +1,24 @@
 package leonardo.ezio.personal.job.helper;
 
+import leonardo.ezio.personal.job.entity.Job;
 import leonardo.ezio.personal.job.entity.JobGroup;
+import org.apache.groovy.parser.antlr4.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * @author LeonardoEzio
  * @version v1.0.0 create at 2024-04-01 23:00
  */
 public class XxlJobAdminHelper {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(XxlJobAdminHelper.class);
 
     /**
      * xxl-job 服务地址
@@ -37,11 +46,6 @@ public class XxlJobAdminHelper {
     private XxlJobInfoApi jobInfoApi;
 
     /**
-     * 任务分组信息
-     */
-    private List<JobGroup> jobGroups;
-
-    /**
      * 是否登录表示
      */
     private AtomicBoolean isLogin = new AtomicBoolean(false);
@@ -52,12 +56,45 @@ public class XxlJobAdminHelper {
         this.appName = appName;
         this.userName = userName;
         this.password = password;
-        this.jobInfoApi = new XxlJobInfoApi(serverUrl);
+        this.jobInfoApi = new XxlJobInfoApi(this.serverUrl);
     }
 
     public static XxlJobAdminHelper create(String serverUrl, String appName, String userName, String password) {
         return new XxlJobAdminHelper(serverUrl, appName, userName, password);
     }
 
+    /**
+     * 登录 xxl-job-amin
+     */
+    public XxlJobAdminHelper login() {
+        this.jobInfoApi.login(this.userName, this.password);
+        this.isLogin.set(true);
+        return this;
+    }
+
+    /**
+     * 添加xxl-job
+     *
+     * @param jobMap 任务信息 key-job信息 ; value-是否需要自动启动
+     */
+    public void addJob(Map<Job, Boolean> jobMap) {
+        JobGroup jobGroup = this.jobInfoApi.findJobGroup(this.appName);
+        if (null == jobGroup) {
+            throw new IllegalStateException("Xxl-Job-Executor Not Register!");
+        }
+        int jobGroupId = jobGroup.getId();
+        List<Job> alreadyRegisterJobs = this.jobInfoApi.findJobByGroupId(jobGroupId);
+        Set<String> alreadyRegisterJobExecutorSets = alreadyRegisterJobs.stream().map(Job::getExecutorHandler).collect(Collectors.toSet());
+        jobMap.forEach((k, v) -> {
+            String executorHandler = k.getExecutorHandler();
+            if (!alreadyRegisterJobExecutorSets.contains(executorHandler)) {
+                long jobId = jobInfoApi.addJob(jobGroupId, k.getJobDesc(), k.getJobCron(), k.getExecutorHandler(), k.getExecutorBlockStrategy(), k.getExecutorTimeout(), k.getExecutorFailRetryCount());
+                if (v) {
+                    jobInfoApi.startJob(jobId);
+                }
+                LOGGER.info("============================ Job Add {} Sucess ============================", StringUtils.isEmpty(k.getJobDesc()) ? k.getExecutorHandler() : k.getJobDesc());
+            }
+        });
+    }
 
 }

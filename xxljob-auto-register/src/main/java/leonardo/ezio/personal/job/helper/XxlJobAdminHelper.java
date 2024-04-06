@@ -72,6 +72,13 @@ public class XxlJobAdminHelper {
         return this;
     }
 
+    public void registerJobGroup(String appName,String appDesc){
+        JobGroup jobGroup = this.jobInfoApi.findJobGroup(appName);
+        if (null == jobGroup){
+            this.jobInfoApi.addJobGroup(appName, appDesc);
+        }
+    }
+
     /**
      * 添加xxl-job
      *
@@ -92,7 +99,7 @@ public class XxlJobAdminHelper {
                 if (v) {
                     jobInfoApi.startJob(jobId);
                 }
-                LOGGER.info("============================ Job Add {} Sucess ============================", StringUtils.isEmpty(k.getJobDesc()) ? k.getExecutorHandler() : k.getJobDesc());
+                LOGGER.info("============================ Job Add {} Success ============================", StringUtils.isEmpty(k.getJobDesc()) ? k.getExecutorHandler() : k.getJobDesc());
             }
         });
     }

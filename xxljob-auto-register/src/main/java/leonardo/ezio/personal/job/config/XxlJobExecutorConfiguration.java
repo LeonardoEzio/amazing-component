@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 /**
  * xxl-job 执行器配置类
@@ -30,7 +31,10 @@ public class XxlJobExecutorConfiguration {
     @Value("${xxl.job.executor.appName}")
     private String appName;
 
-    @Value("${xxl.job.executor.ip}")
+    @Value("${xxl.job.executor.desc:${xxl.job.executor.appName}}")
+    private String appDesc;
+
+    @Value("${xxl.job.executor.ip:}")
     private String ip;
 
     @Value("${xxl.job.executor.port}")
@@ -55,7 +59,7 @@ public class XxlJobExecutorConfiguration {
 
     }
 
-    @Bean(initMethod = "start", destroyMethod = "destroy")
+    @Bean
     @ConditionalOnMissingBean
     public XxlJobSpringExecutor xxlJobExecutor() {
         LOGGER.info("Xxl-Job-Executor Config...................");
@@ -71,13 +75,16 @@ public class XxlJobExecutorConfiguration {
     }
 
     @Bean
+    @DependsOn("xxlJobExecutor")
     public XxlJobAdminHelper jobAdminHelper() {
         LOGGER.info("Begin Create Xll-Job AdminHelper...................");
         if (!StringUtils.isEmpty(this.adminAddresses) && !StringUtils.isEmpty(this.appName)
                 && !StringUtils.isEmpty(this.userName) && !StringUtils.isEmpty(this.password)) {
             try {
                 XxlJobAdminHelper xxlJobAdminHelper = XxlJobAdminHelper.create(this.adminAddresses, this.appName, this.userName, this.password);
-                return xxlJobAdminHelper.login();
+                xxlJobAdminHelper.login();
+                xxlJobAdminHelper.registerJobGroup(this.appName, this.appDesc);
+                return xxlJobAdminHelper;
             } catch (Exception e) {
                 LOGGER.error("Xxl Job Admin Help Init Exception : ", e);
                 throw e;

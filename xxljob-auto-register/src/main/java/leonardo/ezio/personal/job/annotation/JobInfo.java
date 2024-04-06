@@ -10,7 +10,7 @@ import java.lang.annotation.*;
  */
 @Inherited
 @Documented
-@Target(ElementType.TYPE)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface JobInfo {
 
@@ -42,7 +42,7 @@ public @interface JobInfo {
     /**
      * 任务描述
      * */
-    String desc();
+    String desc() default "";
 
 
 }

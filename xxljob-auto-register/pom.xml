@@ -8,6 +8,8 @@
     </parent>
 
     <artifactId>xxljob-auto-register</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
     <name>xxl-job-auto-register-component</name>
 
     <dependencies>

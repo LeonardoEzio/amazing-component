@@ -1,5 +1,6 @@
 package leonardo.ezio.personal.job.helper;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.*;
 import cn.hutool.json.JSONNull;
 import cn.hutool.json.JSONObject;
@@ -11,8 +12,11 @@ import leonardo.ezio.personal.job.entity.Job;
 import leonardo.ezio.personal.job.entity.JobGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.net.HttpCookie;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,11 +77,35 @@ public class XxlJobInfoApi {
         }
     }
 
+
+    public void addJobGroup(String appName, String appDesc) {
+        Map<String, Object> jobGroupAddParam = new HashMap<>();
+        jobGroupAddParam.put("appname", appDesc);
+        jobGroupAddParam.put("title", appDesc);
+        jobGroupAddParam.put("addressType", 0);
+        try {
+            HttpResponse jobGroupAddResponse = HttpRequest.post(this.xxlJobServerUrl + "/jobgroup/save")
+                    .header("Cookie", this.cookie)
+                    .header("Content-Type", ContentType.FORM_URLENCODED.getValue())
+                    .charset("UTF-8")
+                    .form(jobGroupAddParam)
+                    .execute();
+            if (jobGroupAddResponse.isOk() && HttpStatus.HTTP_OK == jobGroupAddResponse.getStatus()) {
+                LOGGER.info("Xxl-Job-Admin Add Job Group {} Success!", appName);
+                return;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Xxl-Job-Admin Add Job Group {} Exception : ", appName, e);
+            throw e;
+        }
+    }
+
     /**
      * 获取执行器
+     *
      * @param appName 执行器名称
-     * */
-    public JobGroup findJobGroup(String appName){
+     */
+    public JobGroup findJobGroup(String appName) {
         Map<String, Object> jobGroupFindParam = new HashMap<>();
         jobGroupFindParam.put("appname", appName);
         try {
@@ -87,10 +115,11 @@ public class XxlJobInfoApi {
                     .charset("UTF-8")
                     .form(jobGroupFindParam)
                     .execute();
-            if (jobGroupFindResponse.isOk() && HttpStatus.HTTP_OK == jobGroupFindResponse.getStatus()){
+            if (jobGroupFindResponse.isOk() && HttpStatus.HTTP_OK == jobGroupFindResponse.getStatus()) {
                 JSONObject jsonObject = JSONUtil.parseObj(jobGroupFindResponse.body());
-                if (jsonObject.getJSONArray("data") != null){
-                    return jsonObject.getJSONArray("data").toList(JobGroup.class).get(0);
+                if (jsonObject.getJSONArray("data") != null) {
+                    List<JobGroup> jobGroups = jsonObject.getJSONArray("data").toList(JobGroup.class);
+                    return CollectionUtils.isEmpty(jobGroups) ? null : jobGroups.get(0);
                 }
             }
             return null;
@@ -104,11 +133,12 @@ public class XxlJobInfoApi {
     /**
      * 获取执行器下面的任务
      *
-     * @param groupId       执行id
+     * @param groupId 执行id
      */
     public List<Job> findJobByGroupId(long groupId) {
         Map<String, Object> jobFindParam = new HashMap<>();
         jobFindParam.put("jobGroup", String.valueOf(groupId));
+        jobFindParam.put("triggerStatus", 0);
         try {
             HttpResponse jobFindResponse = HttpRequest.get(this.xxlJobServerUrl + "/jobinfo/pageList")
                     .header("Cookie", this.cookie)
@@ -143,14 +173,15 @@ public class XxlJobInfoApi {
     public long addJob(long groupId, String desc, String corn, String beanClassName, String blockStrategy, long timeout, int maxRetryCount) {
         Map<String, Object> addJobParam = new HashMap<>();
         addJobParam.put("jobGroup", String.valueOf(groupId));
+        desc = StrUtil.isEmpty(desc) ? beanClassName : desc;
         addJobParam.put("jobDesc", desc);
         addJobParam.put("author", "system");
         addJobParam.put("cornGen_display", corn);
-        addJobParam.put("jobCron", "cron");
+        addJobParam.put("jobCron", corn);
         addJobParam.put("glueType", "BEAN");
-        addJobParam.put("executeHandler", beanClassName);
+        addJobParam.put("executorHandler", beanClassName);
         addJobParam.put("executorParam", "");
-        addJobParam.put("executorRouteStrategy", "FIRST");
+        addJobParam.put("executorRouteStrategy", "ROUND");
         addJobParam.put("executorBlockStrategy", blockStrategy);
         addJobParam.put("executorTimeout", String.valueOf(timeout));
         addJobParam.put("executorFailRetryCount", String.valueOf(maxRetryCount));
@@ -168,7 +199,7 @@ public class XxlJobInfoApi {
                     return jsonObject.getLong("content");
                 }
             }
-            return -1;
+            throw new IllegalStateException(String.format("Xxl-Job-Admin Add Job %s Failed ! ",beanClassName));
         } catch (Exception e) {
             LOGGER.error("Xxl-Job-Admin Add Job Info Exception : ", e);
             throw new RuntimeException(e);
@@ -191,14 +222,14 @@ public class XxlJobInfoApi {
                         .charset("UTF-8")
                         .form(jobStartParam)
                         .execute();
-                if (jobStartResponse.isOk() && HttpStatus.HTTP_OK == jobStartResponse.getStatus()){
+                if (jobStartResponse.isOk() && HttpStatus.HTTP_OK == jobStartResponse.getStatus()) {
                     JSONObject jsonObject = JSONUtil.parseObj(jobStartResponse.body());
-                    if (jsonObject.getInt("code") != 200){
+                    if (jsonObject.getInt("code") != 200) {
                         throw new IllegalStateException("Xxl Job" + id + "Start Failed , Please Start By Manual!");
                     }
                 }
             } catch (Exception e) {
-                LOGGER.error("Xxl-Job-Admin Start Job Exception : ",e);
+                LOGGER.error("Xxl-Job-Admin Start Job Exception : ", e);
                 throw new RuntimeException(e);
             }
         }

@@ -83,7 +83,6 @@ public class XxlJobExecutorConfiguration {
             try {
                 XxlJobAdminHelper xxlJobAdminHelper = XxlJobAdminHelper.create(this.adminAddresses, this.appName, this.userName, this.password);
                 xxlJobAdminHelper.login();
-                xxlJobAdminHelper.registerJobGroup(this.appName, this.appDesc);
                 return xxlJobAdminHelper;
             } catch (Exception e) {
                 LOGGER.error("Xxl Job Admin Help Init Exception : ", e);
@@ -94,4 +93,11 @@ public class XxlJobExecutorConfiguration {
         }
     }
 
+    public String getAppName() {
+        return appName;
+    }
+
+    public String getAppDesc() {
+        return appDesc;
+    }
 }

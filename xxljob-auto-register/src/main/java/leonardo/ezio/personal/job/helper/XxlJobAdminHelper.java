@@ -2,6 +2,7 @@ package leonardo.ezio.personal.job.helper;
 
 import leonardo.ezio.personal.job.entity.Job;
 import leonardo.ezio.personal.job.entity.JobGroup;
+import leonardo.ezio.personal.job.util.CronExpressionUtil;
 import org.apache.groovy.parser.antlr4.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,9 +73,9 @@ public class XxlJobAdminHelper {
         return this;
     }
 
-    public void registerJobGroup(String appName,String appDesc){
+    public void registerJobGroup(String appName, String appDesc) {
         JobGroup jobGroup = this.jobInfoApi.findJobGroup(appName);
-        if (null == jobGroup){
+        if (null == jobGroup) {
             this.jobInfoApi.addJobGroup(appName, appDesc);
         }
     }
@@ -82,9 +83,9 @@ public class XxlJobAdminHelper {
     /**
      * 添加xxl-job
      *
-     * @param jobMap 任务信息 key-job信息 ; value-是否需要自动启动
+     * @param jobSet 待添加的任务
      */
-    public void addJob(Map<Job, Boolean> jobMap) {
+    public void addJob(Set<Job> jobSet) {
         JobGroup jobGroup = this.jobInfoApi.findJobGroup(this.appName);
         if (null == jobGroup) {
             throw new IllegalStateException("Xxl-Job-Executor Not Register!");
@@ -92,16 +93,21 @@ public class XxlJobAdminHelper {
         int jobGroupId = jobGroup.getId();
         List<Job> alreadyRegisterJobs = this.jobInfoApi.findJobByGroupId(jobGroupId);
         Set<String> alreadyRegisterJobExecutorSets = alreadyRegisterJobs.stream().map(Job::getExecutorHandler).collect(Collectors.toSet());
-        jobMap.forEach((k, v) -> {
-            String executorHandler = k.getExecutorHandler();
+        for (Job job : jobSet) {
+            String jobCron = job.getJobCron();
+            String executorHandler = job.getExecutorHandler();
+            if (!CronExpressionUtil.isValidExpression(jobCron)) {
+                LOGGER.error("============================ Job {} Cron {} Is Illegal !  ============================", executorHandler, jobCron);
+                throw new IllegalStateException("Job Corn Is Illegal !");
+            }
             if (!alreadyRegisterJobExecutorSets.contains(executorHandler)) {
-                long jobId = jobInfoApi.addJob(jobGroupId, k.getJobDesc(), k.getJobCron(), k.getExecutorHandler(), k.getExecutorBlockStrategy(), k.getExecutorTimeout(), k.getExecutorFailRetryCount());
-                if (v) {
+                long jobId = jobInfoApi.addJob(jobGroupId, job.getJobDesc(), jobCron, job.getExecutorHandler(), job.getExecutorBlockStrategy(), job.getExecutorTimeout(), job.getExecutorFailRetryCount());
+                if (job.isAutoStart()) {
                     jobInfoApi.startJob(jobId);
                 }
-                LOGGER.info("============================ Job Add {} Success ============================", StringUtils.isEmpty(k.getJobDesc()) ? k.getExecutorHandler() : k.getJobDesc());
+                LOGGER.info("============================ Job Add {} Success ============================", StringUtils.isEmpty(job.getJobDesc()) ? job.getExecutorHandler() : job.getJobDesc());
             }
-        });
+        }
     }
 
 }

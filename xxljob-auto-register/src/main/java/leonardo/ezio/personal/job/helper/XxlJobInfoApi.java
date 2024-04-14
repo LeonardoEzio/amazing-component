@@ -80,7 +80,7 @@ public class XxlJobInfoApi {
 
     public void addJobGroup(String appName, String appDesc) {
         Map<String, Object> jobGroupAddParam = new HashMap<>();
-        jobGroupAddParam.put("appname", appDesc);
+        jobGroupAddParam.put("appname", appName);
         jobGroupAddParam.put("title", appDesc);
         jobGroupAddParam.put("addressType", 0);
         try {
@@ -199,7 +199,7 @@ public class XxlJobInfoApi {
                     return jsonObject.getLong("content");
                 }
             }
-            throw new IllegalStateException(String.format("Xxl-Job-Admin Add Job %s Failed ! ",beanClassName));
+            throw new IllegalStateException(String.format("Xxl-Job-Admin Add Job %s Failed ! ", beanClassName));
         } catch (Exception e) {
             LOGGER.error("Xxl-Job-Admin Add Job Info Exception : ", e);
             throw new RuntimeException(e);

@@ -123,6 +123,11 @@ public class Job implements Serializable {
      */
     private long triggerNextTime;
 
+    /**
+     * 是否自动启动
+     * */
+    private boolean autoStart;
+
     public int getId() {
         return id;
     }
@@ -297,5 +302,13 @@ public class Job implements Serializable {
 
     public void setTriggerNextTime(long triggerNextTime) {
         this.triggerNextTime = triggerNextTime;
+    }
+
+    public boolean isAutoStart() {
+        return autoStart;
+    }
+
+    public void setAutoStart(boolean autoStart) {
+        this.autoStart = autoStart;
     }
 }

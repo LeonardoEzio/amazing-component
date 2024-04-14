@@ -3,6 +3,7 @@ package leonardo.ezio.personal.job.processor;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import leonardo.ezio.personal.job.annotation.AutoRegisterJob;
 import leonardo.ezio.personal.job.annotation.JobInfo;
+import leonardo.ezio.personal.job.config.XxlJobExecutorConfiguration;
 import leonardo.ezio.personal.job.entity.Job;
 import leonardo.ezio.personal.job.helper.XxlJobAdminHelper;
 import org.slf4j.Logger;
@@ -12,20 +13,20 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author LeonardoEzio
  * @version v1.0.0 create at 2024-04-01 23:00
  */
 @Component
+@DependsOn("jobAdminHelper")
 @ConditionalOnBean({XxlJobAdminHelper.class})
 public class XxlJobAutoRegisterProcessor implements ApplicationContextAware, InitializingBean {
 
@@ -41,7 +42,7 @@ public class XxlJobAutoRegisterProcessor implements ApplicationContextAware, Ini
     public void afterPropertiesSet() throws Exception {
         Map<String, Object> xxlJobBeans = applicationContext.getBeansWithAnnotation(AutoRegisterJob.class);
 
-        Map<Job, Boolean> jobBooleanMap = new HashMap<>();
+        Set<Job> jobSet = new HashSet<>();
         xxlJobBeans.forEach((k, v) -> {
             Method[] methods = v.getClass().getMethods();
             for (Method method : methods) {
@@ -49,24 +50,29 @@ public class XxlJobAutoRegisterProcessor implements ApplicationContextAware, Ini
                     JobInfo jobInfoAnnotation = method.getAnnotation(JobInfo.class);
                     XxlJob xxlJobAnnotation = method.getAnnotation(XxlJob.class);
                     Job job = getJob(jobInfoAnnotation, xxlJobAnnotation);
-                    jobBooleanMap.put(job, jobInfoAnnotation.autoStart());
+                    jobSet.add(job);
                 }
             }
         });
 
-        LOGGER.info("Begin Add Job ! Job Info : {}", jobBooleanMap);
-        XxlJobAdminHelper xxlJobAdminHelper = applicationContext.getBean(XxlJobAdminHelper.class);
-        xxlJobAdminHelper.addJob(jobBooleanMap);
+        if (!CollectionUtils.isEmpty(jobSet)){
+            LOGGER.info("Begin Add Job ! Job Info : {}", jobSet);
+            XxlJobAdminHelper xxlJobAdminHelper = applicationContext.getBean(XxlJobAdminHelper.class);
+            XxlJobExecutorConfiguration xxlJobExecutorConfiguration = applicationContext.getBean(XxlJobExecutorConfiguration.class);
+            xxlJobAdminHelper.registerJobGroup(xxlJobExecutorConfiguration.getAppName(), xxlJobExecutorConfiguration.getAppDesc());
+            xxlJobAdminHelper.addJob(jobSet);
+        }
     }
 
     private Job getJob(JobInfo jobInfoAnnotation, XxlJob xxlJobAnnotation) {
         Job job = new Job();
 
-        job.setJobCron(jobInfoAnnotation.corn());
+        job.setJobCron(jobInfoAnnotation.cron());
         job.setExecutorBlockStrategy(jobInfoAnnotation.blockStrategy().getValue());
         job.setExecutorTimeout(jobInfoAnnotation.timeout());
         job.setExecutorFailRetryCount(jobInfoAnnotation.maxRetryCount());
-        job.setJobDesc(job.getJobDesc());
+        job.setJobDesc(jobInfoAnnotation.desc());
+        job.setAutoStart(jobInfoAnnotation.autoStart());
 
         job.setExecutorHandler(xxlJobAnnotation.value());
 

@@ -14,10 +14,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface JobInfo {
 
-    /**
-     * 周期表达式
-     * */
-    String corn();
+    String cron();
 
     /**
      * 阻塞策略
